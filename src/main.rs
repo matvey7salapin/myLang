@@ -8,7 +8,7 @@ fn main() {
     let code = String::from(
         "let x: Int = 42;
 let y = x + 10;
-if (y == 52) {
+if (y == 5_2.0235) {
     return y;
 }",
     );

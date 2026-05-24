@@ -56,6 +56,7 @@ pub enum Token {
     StrLit(String),
     Oper(OperKind),
     NumberLit(u32),
+    FloatLit(f64),
     BoolLit(bool),
     LParen,
     RParen, // ( )
@@ -188,6 +189,18 @@ pub fn tokenize(code: &str) -> Vec<Token> {
                     }
                     chars.next();
                 } else {
+                    if num_buf.contains('.') {
+                        match num_buf.parse::<f64>() {
+                            Ok(n) => tokens.push(Token::FloatLit(n)),
+                            Err(_) => eprintln!("Warning: invalid float '{}'", num_buf),
+                        }
+                    } else {
+                        match num_buf.parse::<u32>() {
+                            Ok(n) => tokens.push(Token::NumberLit(n)),
+                            Err(_) => eprintln!("Warning: invalid integer '{}'", num_buf),
+                        }
+                    }
+
                     if let Ok(n) = num_buf.parse::<u32>() {
                         tokens.push(Token::NumberLit(n));
                     } else {
