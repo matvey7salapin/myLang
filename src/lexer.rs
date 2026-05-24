@@ -1,85 +1,4 @@
-#[derive(Debug, PartialEq, Clone)]
-pub enum KeywordKind {
-    Let,
-    If,
-    Else,
-    Int,
-    Float,
-    Bool,
-    String,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum OperKind {
-    // Арифметические:
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Rem, // % остаток от деления
-    Pow, // ** возведение в степень
-
-    // Инкрементальные:
-    Inc, // ++
-    Dec, // --
-
-    // Сравнения:
-    Eq,
-    NotEq,
-    Lt,
-    LtEq,
-    Gt,
-    GtEq,
-    // Логические:
-    And,
-    Or,
-    Not,
-    // Присваивания:
-    Assign,
-    AddAssign,
-    SubAssign,
-    MulAssign,
-    DivAssign,
-    PowAssign,
-    // Битовые:
-    BitAnd,
-    BitOr,
-    BitXor,
-    BitNot,
-    Shl,
-    Shr,
-}
-#[derive(Debug, PartialEq, Clone)]
-pub enum Token {
-    Keyword(KeywordKind),
-    Ident(String),
-    StrLit(String),
-    Oper(OperKind),
-    NumberLit(u32),
-    FloatLit(f64),
-    BoolLit(bool),
-    LParen,
-    RParen, // ( )
-    LBrace,
-    RBrace, // { }
-    LBracket,
-    RBracket,  // [ ]
-    Comma,     // ,
-    Semicolon, // ;
-    Colon,     // :
-    Arrow,
-    Eof,
-}
-
-#[derive(PartialEq)]
-enum LexState {
-    Default,
-    InString,
-    InIdent,
-    InNumber,
-    InOper,
-}
-
+use crate::types::{KeywordKind, LexState, OperKind, Token, Type};
 pub fn tokenize(code: &str) -> Vec<Token> {
     let mut chars = code.trim().chars().peekable();
     let mut tokens: Vec<Token> = Vec::new();
@@ -138,6 +57,12 @@ pub fn tokenize(code: &str) -> Vec<Token> {
                             tokens.push(Token::Colon);
                             chars.next();
                         }
+                        '\'' => {
+                            chars.next();
+                            tokens.push(Token::CharLit(chars.peek().unwrap().clone()));
+                            chars.next();
+                            chars.next();
+                        }
                         _ => state = LexState::InOper,
                     }
                 }
@@ -169,12 +94,28 @@ pub fn tokenize(code: &str) -> Vec<Token> {
                         "if" => Token::Keyword(KeywordKind::If),
                         "let" => Token::Keyword(KeywordKind::Let),
                         "else" => Token::Keyword(KeywordKind::Else),
-                        "int" => Token::Keyword(KeywordKind::Int),
-                        "float" => Token::Keyword(KeywordKind::Float),
-                        "bool" => Token::Keyword(KeywordKind::Bool),
-                        "string" => Token::Keyword(KeywordKind::String),
+                        "String" => Token::Keyword(KeywordKind::String),
                         "true" => Token::BoolLit(true),
                         "false" => Token::BoolLit(false),
+                        //-------- ТИПЫ -----------//
+                        "i8" => Token::Type(Type::I8),
+                        "i16" => Token::Type(Type::I16),
+                        "i32" => Token::Type(Type::I32),
+                        "i64" => Token::Type(Type::I64),
+                        // Без-знаковые
+                        "u8" => Token::Type(Type::U8),
+                        "u16" => Token::Type(Type::U16),
+                        "u32" => Token::Type(Type::U32),
+                        "u64" => Token::Type(Type::U64),
+                        // С плавающей точкой
+                        "f16" => Token::Type(Type::F16),
+                        "f32" => Token::Type(Type::F32),
+                        "f64" => Token::Type(Type::F64),
+                        // Другие:
+                        "bool" => Token::Type(Type::Bool),
+                        "str" => Token::Type(Type::Str),
+                        "char" => Token::Type(Type::Char),
+
                         _ => Token::Ident(ident_buf.clone()),
                     };
                     tokens.push(token);
@@ -195,13 +136,13 @@ pub fn tokenize(code: &str) -> Vec<Token> {
                             Err(_) => eprintln!("Warning: invalid float '{}'", num_buf),
                         }
                     } else {
-                        match num_buf.parse::<u32>() {
+                        match num_buf.parse::<u64>() {
                             Ok(n) => tokens.push(Token::NumberLit(n)),
                             Err(_) => eprintln!("Warning: invalid integer '{}'", num_buf),
                         }
                     }
 
-                    if let Ok(n) = num_buf.parse::<u32>() {
+                    if let Ok(n) = num_buf.parse::<u64>() {
                         tokens.push(Token::NumberLit(n));
                     } else {
                         eprintln!("Warning: invalid number '{}'", num_buf);
