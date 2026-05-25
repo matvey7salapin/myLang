@@ -129,3 +129,9 @@ pub enum Stmt {
     },
     Return(Option<Expr>),
 }
+#[derive(PartialEq)]
+pub struct Program {
+    pub statements: Vec<Stmt>,
+    pub imports: Vec<String>,
+    pub module_name: Option<String>,
+}
