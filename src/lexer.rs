@@ -1,4 +1,4 @@
-use crate::types::{KeywordKind, OperKind, Token, Type};
+use crate::types::{KeywordKind, OperKind, Span, Token, TokenWithSpan, Type};
 #[derive(PartialEq)]
 enum LexState {
     Default,
@@ -9,7 +9,7 @@ enum LexState {
 }
 
 pub struct Lexer {
-    tokens: Vec<Token>,
+    tokens: Vec<TokenWithSpan>,
     chars: Vec<char>,
     pos: usize,
 
@@ -43,9 +43,21 @@ impl Lexer {
             str_buf: String::new(),
         }
     }
+    pub fn get_tokens_with_span(self) -> Vec<TokenWithSpan> {
+        return self.tokens;
+    }
+    fn push_token_with_span(&mut self, token: Token) {
+        self.tokens.push(TokenWithSpan {
+            token: token,
+            span: Span {
+                line: self.line,
+                col: self.col,
+            },
+        });
+    }
     fn new_line(&mut self) -> usize {
         self.line += 1;
-        self.col = 0;
+        self.col = 1;
 
         return self.line;
     }
@@ -69,18 +81,18 @@ impl Lexer {
             } else {
                 if self.num_buf.contains('.') {
                     match self.num_buf.parse::<f64>() {
-                        Ok(n) => self.tokens.push(Token::FloatLit(n)),
+                        Ok(n) => self.push_token_with_span(Token::FloatLit(n)),
                         Err(_) => eprintln!("Warning: invalid float '{}'", self.num_buf),
                     }
                 } else {
                     match self.num_buf.parse::<u64>() {
-                        Ok(n) => self.tokens.push(Token::NumberLit(n)),
+                        Ok(n) => self.push_token_with_span(Token::NumberLit(n)),
                         Err(_) => eprintln!("Warning: invalid integer '{}'", self.num_buf),
                     }
                 }
 
                 if let Ok(n) = self.num_buf.parse::<u64>() {
-                    self.tokens.push(Token::NumberLit(n));
+                    self.push_token_with_span(Token::NumberLit(n));
                 } else {
                     eprintln!("Warning: invalid number '{}'", self.num_buf);
                 }
@@ -123,7 +135,7 @@ impl Lexer {
 
                     _ => Token::Ident(self.ident_buf.clone()),
                 };
-                self.tokens.push(token);
+                self.push_token_with_span(token);
                 self.ident_buf.clear();
                 self.state = LexState::Default;
             }
@@ -134,27 +146,27 @@ impl Lexer {
             match c {
                 '+' => match self.peek() {
                     Some(&'+') => {
-                        self.tokens.push(Token::Oper(OperKind::Inc));
+                        self.push_token_with_span(Token::Oper(OperKind::Inc));
                     }
                     Some(&'=') => {
-                        self.tokens.push(Token::Oper(OperKind::AddAssign));
+                        self.push_token_with_span(Token::Oper(OperKind::AddAssign));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::Add));
+                        self.push_token_with_span(Token::Oper(OperKind::Add));
                     }
                 },
                 '-' => match self.peek() {
                     Some(&'-') => {
-                        self.tokens.push(Token::Oper(OperKind::Dec));
+                        self.push_token_with_span(Token::Oper(OperKind::Dec));
                     }
                     Some(&'>') => {
-                        self.tokens.push(Token::Arrow);
+                        self.push_token_with_span(Token::Arrow);
                     }
                     Some('=') => {
-                        self.tokens.push(Token::Oper(OperKind::SubAssign));
+                        self.push_token_with_span(Token::Oper(OperKind::SubAssign));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::Sub));
+                        self.push_token_with_span(Token::Oper(OperKind::Sub));
                     }
                 },
                 '*' => match self.peek() {
@@ -162,96 +174,96 @@ impl Lexer {
                         self.next();
                         match self.peek() {
                             Some(&'=') => {
-                                self.tokens.push(Token::Oper(OperKind::PowAssign));
+                                self.push_token_with_span(Token::Oper(OperKind::PowAssign));
                             }
                             _ => {
-                                self.tokens.push(Token::Oper(OperKind::Pow));
+                                self.push_token_with_span(Token::Oper(OperKind::Pow));
                             }
                         }
                     }
                     Some(&'=') => {
-                        self.tokens.push(Token::Oper(OperKind::MulAssign));
+                        self.push_token_with_span(Token::Oper(OperKind::MulAssign));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::Mul));
+                        self.push_token_with_span(Token::Oper(OperKind::Mul));
                     }
                 },
                 '/' => match self.peek() {
                     Some(&'=') => {
-                        self.tokens.push(Token::Oper(OperKind::DivAssign));
+                        self.push_token_with_span(Token::Oper(OperKind::DivAssign));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::Div));
+                        self.push_token_with_span(Token::Oper(OperKind::Div));
                     }
                 },
                 '%' => {
-                    self.tokens.push(Token::Oper(OperKind::Rem));
+                    self.push_token_with_span(Token::Oper(OperKind::Rem));
                 }
                 '=' => match self.peek() {
                     Some(&'=') => {
-                        self.tokens.push(Token::Oper(OperKind::Eq));
+                        self.push_token_with_span(Token::Oper(OperKind::Eq));
                     }
                     Some(&'>') => {
-                        self.tokens.push(Token::Arrow);
+                        self.push_token_with_span(Token::Arrow);
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::Assign));
+                        self.push_token_with_span(Token::Oper(OperKind::Assign));
                     }
                 },
                 '!' => match self.peek() {
                     Some(&'=') => {
-                        self.tokens.push(Token::Oper(OperKind::NotEq));
+                        self.push_token_with_span(Token::Oper(OperKind::NotEq));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::Not));
+                        self.push_token_with_span(Token::Oper(OperKind::Not));
                     }
                 },
                 '<' => match self.peek() {
                     Some(&'<') => {
-                        self.tokens.push(Token::Oper(OperKind::Shl));
+                        self.push_token_with_span(Token::Oper(OperKind::Shl));
                     }
                     Some(&'=') => {
-                        self.tokens.push(Token::Oper(OperKind::LtEq));
+                        self.push_token_with_span(Token::Oper(OperKind::LtEq));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::Lt));
+                        self.push_token_with_span(Token::Oper(OperKind::Lt));
                     }
                 },
                 '>' => match self.peek() {
                     Some(&'>') => {
-                        self.tokens.push(Token::Oper(OperKind::Shr));
+                        self.push_token_with_span(Token::Oper(OperKind::Shr));
                     }
                     Some(&'=') => {
-                        self.tokens.push(Token::Oper(OperKind::GtEq));
+                        self.push_token_with_span(Token::Oper(OperKind::GtEq));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::Gt));
+                        self.push_token_with_span(Token::Oper(OperKind::Gt));
                     }
                 },
                 '&' => match self.peek() {
                     Some(&'&') => {
-                        self.tokens.push(Token::Oper(OperKind::And));
+                        self.push_token_with_span(Token::Oper(OperKind::And));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::BitAnd));
+                        self.push_token_with_span(Token::Oper(OperKind::BitAnd));
                     }
                 },
                 '|' => match self.peek() {
                     Some(&'|') => {
-                        self.tokens.push(Token::Oper(OperKind::Or));
+                        self.push_token_with_span(Token::Oper(OperKind::Or));
                     }
                     _ => {
-                        self.tokens.push(Token::Oper(OperKind::BitOr));
+                        self.push_token_with_span(Token::Oper(OperKind::BitOr));
                     }
                 },
                 '~' => {
-                    self.tokens.push(Token::Oper(OperKind::BitNot));
+                    self.push_token_with_span(Token::Oper(OperKind::BitNot));
                 }
                 '^' => {
-                    self.tokens.push(Token::Oper(OperKind::BitXor));
+                    self.push_token_with_span(Token::Oper(OperKind::BitXor));
                 }
                 _ => {
-                    self.tokens.push(Token::Oper(OperKind::BitAnd));
+                    self.push_token_with_span(Token::Oper(OperKind::BitAnd));
                 }
             }
             self.next();
@@ -259,8 +271,7 @@ impl Lexer {
         }
     }
 
-    pub fn tokenize(&mut self) /* -> Vec<Token> */
-    {
+    pub fn tokenize(&mut self) {
         while let Some(&c) = self.peek() {
             self.col += 1;
             match self.state {
@@ -280,45 +291,46 @@ impl Lexer {
                     } else {
                         match c {
                             '(' => {
-                                self.tokens.push(Token::LParen);
+                                self.push_token_with_span(Token::LParen);
                                 self.next();
                             }
                             ')' => {
-                                self.tokens.push(Token::RParen);
+                                self.push_token_with_span(Token::RParen);
                                 self.next();
                             }
                             '{' => {
-                                self.tokens.push(Token::LBrace);
+                                self.push_token_with_span(Token::LBrace);
                                 self.next();
                             }
                             '}' => {
-                                self.tokens.push(Token::RBrace);
+                                self.push_token_with_span(Token::RBrace);
                                 self.next();
                             }
                             '[' => {
-                                self.tokens.push(Token::LBracket);
+                                self.push_token_with_span(Token::LBracket);
                                 self.next();
                             }
                             ']' => {
-                                self.tokens.push(Token::RBracket);
+                                self.push_token_with_span(Token::RBracket);
                                 self.next();
                             }
                             ',' => {
-                                self.tokens.push(Token::Comma);
+                                self.push_token_with_span(Token::Comma);
                                 self.next();
                             }
                             ';' => {
-                                self.tokens.push(Token::Semicolon);
+                                self.push_token_with_span(Token::Semicolon);
                                 self.next();
                             }
                             ':' => {
-                                self.tokens.push(Token::Colon);
+                                self.push_token_with_span(Token::Colon);
                                 self.next();
                             }
                             '\'' => {
                                 self.next();
-                                self.tokens
-                                    .push(Token::CharLit(self.peek().unwrap().clone()));
+                                self.push_token_with_span(Token::CharLit(
+                                    self.peek().unwrap().clone(),
+                                ));
                                 self.next();
                                 self.next();
                             }
@@ -329,7 +341,7 @@ impl Lexer {
                 LexState::InString => {
                     if c == '"' {
                         self.next();
-                        self.tokens.push(Token::StrLit(self.str_buf.clone()));
+                        self.push_token_with_span(Token::StrLit(self.str_buf.clone()));
                         self.str_buf.clear();
 
                         self.state = LexState::Default;
@@ -345,8 +357,6 @@ impl Lexer {
                 LexState::InOper => self.tokenize_oper(),
             }
         }
-        self.tokens.push(Token::Eof);
-
-        //return self.tokens;
+        self.push_token_with_span(Token::Eof);
     }
 }

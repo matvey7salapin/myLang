@@ -71,6 +71,34 @@ pub enum Token {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct Span {
+    pub line: usize,
+    pub col: usize,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct TokenWithSpan {
+    pub token: Token,
+    pub span: Span,
+}
+impl TokenWithSpan {
+    pub fn new(token: Token, span: Span) -> Self {
+        Self {
+            token: token,
+            span: span,
+        }
+    }
+    pub fn keyword(kind: KeywordKind, span: Span) -> Self {
+        Self::new(Token::Keyword(kind), span)
+    }
+    pub fn ident(name: String, span: Span) -> Self {
+        Self::new(Token::Ident(name), span)
+    }
+    pub fn number(n: u64, span: Span) -> Self {
+        Self::new(Token::NumberLit(n), span)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     I8,
     I16,
