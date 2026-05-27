@@ -70,15 +70,6 @@ pub enum Token {
     Eof,
 }
 
-#[derive(PartialEq)]
-pub enum LexState {
-    Default,
-    InString,
-    InIdent,
-    InNumber,
-    InOper,
-}
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     I8,
@@ -98,14 +89,16 @@ pub enum Type {
 }
 #[derive(PartialEq)]
 pub enum Expr {
-    Number(u32),
+    Number(u64),
     Float(f64),
-
+    Bool(bool),
+    Char(char),
+    Str(String),
     Ident(String),
 
     Binary {
         left: Box<Expr>,
-        op: String,
+        op: OperKind,
         right: Box<Expr>,
     },
 }
@@ -114,7 +107,7 @@ pub enum Stmt {
     Let {
         name: String,
         ty: Option<Type>,
-        value: Expr,
+        value: Option<Expr>,
     },
     Assign {
         target: Expr,
